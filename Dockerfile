@@ -24,6 +24,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # get stuck in a restart loop.
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')"
 ENV HF_HUB_OFFLINE=1
+ENV OMP_NUM_THREADS=1
+ENV TOKENIZERS_PARALLELISM=false
 
 COPY main.py .
 COPY data/chroma_db ./data/chroma_db

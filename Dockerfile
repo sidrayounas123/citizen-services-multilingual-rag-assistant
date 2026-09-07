@@ -18,6 +18,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download the multilingual embedding model at BUILD time, not runtime.
+# This avoids a slow/flaky network download on every container start, which
+# was causing the app to exceed Railway's startup health-check window and
+# get stuck in a restart loop.
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')"
+ENV HF_HUB_OFFLINE=1
+
 COPY main.py .
 COPY data/chroma_db ./data/chroma_db
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist

@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # much lighter on memory than full PyTorch, which was causing OOM crashes
 # on Railway's 1GB free-tier memory limit).
 RUN pip install --no-cache-dir "optimum[onnxruntime]"
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', backend='onnx')"
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', backend='onnx', model_kwargs={'file_name': 'onnx/model_quint8_avx2.onnx'})"
 ENV OMP_NUM_THREADS=1
 ENV TOKENIZERS_PARALLELISM=false
 

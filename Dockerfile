@@ -22,7 +22,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # This avoids a slow/flaky network download on every container start, which
 # was causing the app to exceed Railway's startup health-check window and
 # get stuck in a restart loop.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')"
+# Pre-download the multilingual embedding model at BUILD time (ONNX backend -
+# much lighter on memory than full PyTorch, which was causing OOM crashes
+# on Railway's 1GB free-tier memory limit).
+RUN pip install --no-cache-dir "optimum[onnxruntime]"
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', backend='onnx')"
 ENV HF_HUB_OFFLINE=1
 ENV OMP_NUM_THREADS=1
 ENV TOKENIZERS_PARALLELISM=false

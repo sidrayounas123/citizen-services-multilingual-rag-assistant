@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("GROQ_API_KEY not set - check your .env file")
 
     state["groq_client"] = Groq(api_key=groq_api_key)
-    state["embed_model"] = SentenceTransformer(EMBED_MODEL_NAME)
+    state["embed_model"] = SentenceTransformer(EMBED_MODEL_NAME, backend="onnx")
     chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
     state["collection"] = chroma_client.get_collection(COLLECTION_NAME)
     logger.info("Startup complete.")

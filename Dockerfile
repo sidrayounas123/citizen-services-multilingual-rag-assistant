@@ -27,7 +27,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # on Railway's 1GB free-tier memory limit).
 RUN pip install --no-cache-dir "optimum[onnxruntime]"
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', backend='onnx')"
-ENV HF_HUB_OFFLINE=1
 ENV OMP_NUM_THREADS=1
 ENV TOKENIZERS_PARALLELISM=false
 

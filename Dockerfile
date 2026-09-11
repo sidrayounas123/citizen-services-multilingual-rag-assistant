@@ -18,17 +18,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download the multilingual embedding model at BUILD time, not runtime.
-# This avoids a slow/flaky network download on every container start, which
-# was causing the app to exceed Railway's startup health-check window and
-# get stuck in a restart loop.
-# Pre-download the multilingual embedding model at BUILD time (ONNX backend -
-# much lighter on memory than full PyTorch, which was causing OOM crashes
-# on Railway's 1GB free-tier memory limit).
-RUN pip install --no-cache-dir "optimum[onnxruntime]"
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', backend='onnx', model_kwargs={'file_name': 'onnx/model_quint8_avx2.onnx'})"
+# Pre-download the fastembed multilingual model at BUILD time, not runtime -
+# avoids a network dependency during container startup. fastembed uses ONNX
+# runtime directly (no PyTorch), which is what actually fixed the OOM crashes
+# on Railway's 1GB free-tier memory limit.
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')"
 ENV OMP_NUM_THREADS=1
-ENV TOKENIZERS_PARALLELISM=false
 
 COPY main.py .
 COPY data/chroma_db ./data/chroma_db

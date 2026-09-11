@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from groq import Groq
 import chromadb
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 from langdetect import detect, DetectorFactory
 
 DetectorFactory.seed = 0
@@ -25,7 +25,7 @@ load_dotenv()
 # ---- Config ----
 CHROMA_DIR = "data/chroma_db"
 COLLECTION_NAME = "rag_corpus"
-EMBED_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 LLM_MODEL = "openai/gpt-oss-120b"
 LANGUAGE_BOOST = 3.0
 CANDIDATE_POOL = 15
@@ -65,10 +65,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("GROQ_API_KEY not set - check your .env file")
 
     state["groq_client"] = Groq(api_key=groq_api_key)
-    state["embed_model"] = SentenceTransformer(
-        EMBED_MODEL_NAME, backend="onnx",
-        model_kwargs={"file_name": "onnx/model_quint8_avx2.onnx"},
-    )
+    state["embed_model"] = TextEmbedding(model_name=EMBED_MODEL_NAME)
     chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
     state["collection"] = chroma_client.get_collection(COLLECTION_NAME)
     logger.info("Startup complete.")
@@ -123,7 +120,7 @@ def retrieve(query: str, k: int = TOP_K):
     embed_model = state["embed_model"]
     collection = state["collection"]
 
-    query_embedding = embed_model.encode([query])[0].tolist()
+    query_embedding = list(embed_model.embed([query]))[0].tolist()
     query_lang = detect_query_language(query)
 
     results = collection.query(query_embeddings=[query_embedding], n_results=CANDIDATE_POOL)

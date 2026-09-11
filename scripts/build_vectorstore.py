@@ -7,12 +7,12 @@ Run this file directly to build the store and try a few test queries.
 import json
 from pathlib import Path
 import chromadb
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 CHUNKS_PATH = Path("data/processed/chunks_with_embeddings.json")
 CHROMA_DIR = "data/chroma_db"
 COLLECTION_NAME = "rag_corpus"
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
 def load_chunks():
@@ -43,7 +43,7 @@ def build_store(chunks):
 
 
 def retrieve(query: str, collection, model, k: int = 5):
-    query_embedding = model.encode([query])[0].tolist()
+    query_embedding = list(model.embed([query]))[0].tolist()
     results = collection.query(query_embeddings=[query_embedding], n_results=k)
 
     hits = []
@@ -68,7 +68,7 @@ def print_hits(query, hits):
 
 def main():
     chunks = load_chunks()
-    model = SentenceTransformer(MODEL_NAME)
+    model = TextEmbedding(model_name=MODEL_NAME)
     collection = build_store(chunks)
 
     # A few manual sanity-check queries - mix of English and Urdu,

@@ -7,13 +7,15 @@ embedding vectors for each chunk. Output feeds directly into ChromaDB (Step 3).
 import json
 from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 CORPUS_PATH = Path("data/processed/corpus.json")
 OUT_PATH = Path("data/processed/chunks_with_embeddings.json")
 
-# Multilingual model - understands both Urdu and English in the same vector space
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+# Multilingual model, no PyTorch dependency - understands Urdu and English
+# in the same vector space. E5 models expect a "passage: " / "query: " prefix
+# on the text they embed for best retrieval quality.
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 CHUNK_SIZE = 400        # characters per chunk (kept smaller since Urdu script is denser)
 CHUNK_OVERLAP = 80      # overlap between consecutive chunks
@@ -50,10 +52,10 @@ def chunk_records(records: list[dict]) -> list[dict]:
     return chunks
 
 
-def embed_chunks(chunks: list[dict], model: SentenceTransformer) -> list[dict]:
+def embed_chunks(chunks: list[dict], model: TextEmbedding) -> list[dict]:
     texts = [c["text"] for c in chunks]
     print(f"Embedding {len(texts)} chunks (this may take a minute)...")
-    embeddings = model.encode(texts, show_progress_bar=True, batch_size=32)
+    embeddings = list(model.embed(texts))
 
     for chunk, embedding in zip(chunks, embeddings):
         chunk["embedding"] = embedding.tolist()
@@ -76,7 +78,7 @@ def main():
     print(f"Chunk language breakdown: {lang_counts}\n")
 
     print(f"Loading embedding model: {MODEL_NAME} (first run will download it)...")
-    model = SentenceTransformer(MODEL_NAME)
+    model = TextEmbedding(model_name=MODEL_NAME)
 
     chunks = embed_chunks(chunks, model)
 
